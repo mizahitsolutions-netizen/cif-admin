@@ -1,21 +1,44 @@
 import { useState } from "react";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 import { db } from "../firebase";
 import { compressImageToWebP } from "../compressImage";
 import { uploadToFirebase } from "../uploadToFirebase";
 import toast from "react-hot-toast";
+
+/* 🔗 Slug generator */
+const generateSlug = (text) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
 export default function AddStock() {
   const [loading, setLoading] = useState(false);
 
   const [newStock, setNewStock] = useState({
     name: "",
+    slug: "",
     description: "",
     quantity: "",
     price: "",
     packageType: "",
     image: null,
   });
+
+  /* 🔍 Check slug uniqueness */
+  const isSlugUnique = async (slug) => {
+    const q = query(collection(db, "products"), where("slug", "==", slug));
+    const snap = await getDocs(q);
+    return snap.empty;
+  };
 
   const handleAddProduct = async () => {
     if (
@@ -29,19 +52,30 @@ export default function AddStock() {
       return;
     }
 
+    const slug = generateSlug(newStock.name);
+
     try {
       setLoading(true);
       toast.loading("Uploading product...", { id: "upload" });
 
-      // 🔹 1. Compress + Convert to WebP
-      const webpImage = await compressImageToWebP(newStock.image);
+      /* 🔒 Slug uniqueness check */
+      const unique = await isSlugUnique(slug);
+      if (!unique) {
+        toast.error("Product with same name already exists. Change name.", {
+          id: "upload",
+        });
+        setLoading(false);
+        return;
+      }
 
-      // 🔹 2. Upload to Firebase Storage
+      /* 🔹 Compress + Upload Image */
+      const webpImage = await compressImageToWebP(newStock.image);
       const imageUrl = await uploadToFirebase(webpImage);
 
-      // 🔹 3. Save product to Firestore
+      /* 🔹 Save product */
       await addDoc(collection(db, "products"), {
         name: newStock.name,
+        slug, // ✅ UNIQUE SLUG
         description: newStock.description,
         quantity: Number(newStock.quantity),
         price: Number(newStock.price),
@@ -50,10 +84,13 @@ export default function AddStock() {
         createdAt: serverTimestamp(),
       });
 
-      toast.success("Product added successfully ✅", { id: "upload" });
+      toast.success("Product added successfully ✅", {
+        id: "upload",
+      });
 
       setNewStock({
         name: "",
+        slug: "",
         description: "",
         quantity: "",
         price: "",
@@ -62,7 +99,9 @@ export default function AddStock() {
       });
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add product ❌", { id: "upload" });
+      toast.error("Failed to add product ❌", {
+        id: "upload",
+      });
     } finally {
       setLoading(false);
     }
@@ -72,14 +111,21 @@ export default function AddStock() {
     <>
       <h1 className="text-3xl font-bold mb-8">Add New Product</h1>
 
-      <div className="bg-white p-8 rounded-lg shadow max-w-4xl">
+      <div className="bg-white p-8 rounded-xl shadow max-w-4xl">
         {/* Name | Quantity | Price */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <input
             className="p-2 border rounded"
             placeholder="Product name"
             value={newStock.name}
-            onChange={(e) => setNewStock({ ...newStock, name: e.target.value })}
+            onChange={(e) => {
+              const name = e.target.value;
+              setNewStock({
+                ...newStock,
+                name,
+                slug: generateSlug(name),
+              });
+            }}
           />
 
           <input
@@ -88,7 +134,10 @@ export default function AddStock() {
             placeholder="Stock"
             value={newStock.quantity}
             onChange={(e) =>
-              setNewStock({ ...newStock, quantity: e.target.value })
+              setNewStock({
+                ...newStock,
+                quantity: e.target.value,
+              })
             }
           />
 
@@ -98,10 +147,21 @@ export default function AddStock() {
             placeholder="Price"
             value={newStock.price}
             onChange={(e) =>
-              setNewStock({ ...newStock, price: e.target.value })
+              setNewStock({
+                ...newStock,
+                price: e.target.value,
+              })
             }
           />
         </div>
+
+        {/* SLUG (READ-ONLY PREVIEW) */}
+        {/* <input
+          className="w-full p-2 border rounded mb-4 bg-gray-50 text-gray-600"
+          value={newStock.slug}
+          readOnly
+          placeholder="Slug will be generated automatically"
+        /> */}
 
         {/* Description */}
         <textarea
@@ -110,7 +170,10 @@ export default function AddStock() {
           placeholder="Description"
           value={newStock.description}
           onChange={(e) =>
-            setNewStock({ ...newStock, description: e.target.value })
+            setNewStock({
+              ...newStock,
+              description: e.target.value,
+            })
           }
         />
 
@@ -119,7 +182,10 @@ export default function AddStock() {
           className="w-full p-2 border rounded mb-4"
           value={newStock.packageType}
           onChange={(e) =>
-            setNewStock({ ...newStock, packageType: e.target.value })
+            setNewStock({
+              ...newStock,
+              packageType: e.target.value,
+            })
           }
         >
           <option value="">Select package</option>
@@ -142,7 +208,10 @@ export default function AddStock() {
           accept="image/*"
           className="w-full mb-6"
           onChange={(e) =>
-            setNewStock({ ...newStock, image: e.target.files[0] })
+            setNewStock({
+              ...newStock,
+              image: e.target.files[0],
+            })
           }
         />
 

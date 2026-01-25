@@ -13,6 +13,14 @@ import toast from "react-hot-toast";
 import { compressImageToWebP } from "../compressImage";
 import { uploadToFirebase } from "../uploadToFirebase";
 
+/* 🔗 Slug generator */
+const generateSlug = (text) =>
+  text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
 export default function Stocks() {
   const [stocks, setStocks] = useState([]);
   const [filter, setFilter] = useState("All");
@@ -47,9 +55,7 @@ export default function Stocks() {
         await deleteObject(ref(storage, path));
       }
 
-      // ✅ CORRECT
       await deleteDoc(doc(db, "products", product.id));
-
       toast.success("Product deleted successfully");
     } catch (err) {
       console.error("DELETE ERROR:", err);
@@ -73,9 +79,9 @@ export default function Stocks() {
         imageUrl = await uploadToFirebase(webp);
       }
 
-      // ✅ CORRECT document reference
       await updateDoc(doc(db, "products", editing.id), {
         name: editing.name,
+        slug: editing.slug, // ✅ SLUG SAVED
         description: editing.description,
         quantity: Number(editing.quantity),
         price: Number(editing.price),
@@ -178,18 +184,18 @@ export default function Stocks() {
 
               <div className="flex justify-end gap-4 pt-3">
                 <button
-                  onClick={() => setEditing(p)}
+                  onClick={() =>
+                    setEditing({
+                      ...p,
+                      slug: p.slug || generateSlug(p.name),
+                    })
+                  }
                   className="text-blue-600"
-                  title="Edit"
                 >
                   <Pencil size={18} />
                 </button>
 
-                <button
-                  onClick={() => deleteStock(p)}
-                  className="text-red-600"
-                  title="Delete"
-                >
+                <button onClick={() => deleteStock(p)} className="text-red-600">
                   <Trash2 size={18} />
                 </button>
               </div>
@@ -201,68 +207,130 @@ export default function Stocks() {
       {/* ✏️ Edit Modal */}
       {editing && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Edit Product</h2>
+          <div className="bg-white p-6 rounded-xl w-full max-w-3xl">
+            <h2 className="text-xl font-bold mb-6">Edit Product</h2>
 
-            <input
-              className="w-full border p-2 mb-2"
-              placeholder="Name"
-              value={editing.name}
-              onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* LEFT: FORM */}
+              <div>
+                {/* NAME */}
+                <input
+                  className="w-full border p-2 mb-2"
+                  placeholder="Name"
+                  value={editing.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setEditing({
+                      ...editing,
+                      name,
+                      slug: generateSlug(name),
+                    });
+                  }}
+                />
 
-            <textarea
-              className="w-full border p-2 mb-2"
-              placeholder="Description"
-              rows="3"
-              value={editing.description}
-              onChange={(e) =>
-                setEditing({ ...editing, description: e.target.value })
-              }
-            />
+                {/* SLUG */}
+                {/* <input
+                  className="w-full border p-2 mb-2 bg-gray-50"
+                  placeholder="Slug"
+                  value={editing.slug}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      slug: generateSlug(e.target.value),
+                    })
+                  }
+                /> */}
 
-            <input
-              type="number"
-              className="w-full border p-2 mb-2"
-              placeholder="Price"
-              value={editing.price}
-              onChange={(e) =>
-                setEditing({ ...editing, price: e.target.value })
-              }
-            />
+                {/* DESCRIPTION */}
+                <textarea
+                  className="w-full border p-2 mb-2"
+                  placeholder="Description"
+                  rows="3"
+                  value={editing.description}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      description: e.target.value,
+                    })
+                  }
+                />
 
-            <input
-              type="number"
-              className="w-full border p-2 mb-2"
-              placeholder="Quantity"
-              value={editing.quantity}
-              onChange={(e) =>
-                setEditing({ ...editing, quantity: e.target.value })
-              }
-            />
+                {/* PRICE */}
+                <input
+                  type="number"
+                  className="w-full border p-2 mb-2"
+                  placeholder="Price"
+                  value={editing.price}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      price: e.target.value,
+                    })
+                  }
+                />
 
-            <select
-              className="w-full border p-2 mb-3"
-              value={editing.packageType}
-              onChange={(e) =>
-                setEditing({ ...editing, packageType: e.target.value })
-              }
-            >
-              <option>Small</option>
-              <option>Medium</option>
-              <option>Family</option>
-            </select>
+                {/* QUANTITY */}
+                <input
+                  type="number"
+                  className="w-full border p-2 mb-2"
+                  placeholder="Quantity"
+                  value={editing.quantity}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      quantity: e.target.value,
+                    })
+                  }
+                />
 
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setNewImage(e.target.files[0])}
-              className="mb-4"
-            />
+                {/* PACKAGE */}
+                <select
+                  className="w-full border p-2 mb-3"
+                  value={editing.packageType}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      packageType: e.target.value,
+                    })
+                  }
+                >
+                  <option>Small</option>
+                  <option>Medium</option>
+                  <option>Family</option>
+                </select>
 
-            <div className="flex justify-end gap-3">
+                {/* IMAGE INPUT */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setNewImage(e.target.files[0])}
+                  className="mb-4"
+                />
+              </div>
+
+              {/* RIGHT: IMAGE PREVIEW */}
+              <div className="flex items-center justify-center">
+                <div className="w-full h-64 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden">
+                  <img
+                    src={
+                      newImage
+                        ? URL.createObjectURL(newImage)
+                        : editing.imageUrl
+                    }
+                    alt="Preview"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ACTIONS */}
+            <div className="flex justify-end gap-3 mt-6">
               <button
-                onClick={() => setEditing(null)}
+                onClick={() => {
+                  setEditing(null);
+                  setNewImage(null);
+                }}
                 className="px-4 py-2 bg-gray-200 rounded"
               >
                 Cancel
