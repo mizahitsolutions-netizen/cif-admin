@@ -33,7 +33,7 @@ export default function CookiesAdmin() {
     setTimeout(() => {
       setCurrentPage(page);
       setPageLoading(false);
-    }, 500); // ⏱️ 300–600ms feels perfect
+    }, 600); // ⏱️ 300–600ms feels perfect
   };
 
   return (
