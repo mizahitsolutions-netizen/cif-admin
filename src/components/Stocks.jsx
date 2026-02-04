@@ -21,8 +21,26 @@ const generateSlug = (text) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+/* 🧱 Skeleton Card */
+const StockSkeleton = () => (
+  <div className="bg-white rounded-xl shadow animate-pulse overflow-hidden">
+    <div className="h-44 bg-gray-200" />
+    <div className="p-4 space-y-3">
+      <div className="h-4 bg-gray-200 rounded w-3/4" />
+      <div className="h-4 bg-gray-200 rounded w-1/3" />
+      <div className="h-3 bg-gray-200 rounded w-full" />
+      <div className="h-3 bg-gray-200 rounded w-5/6" />
+      <div className="flex justify-between pt-2">
+        <div className="h-4 bg-gray-200 rounded w-16" />
+        <div className="h-4 bg-gray-200 rounded w-12" />
+      </div>
+    </div>
+  </div>
+);
+
 export default function Stocks() {
   const [stocks, setStocks] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
@@ -31,11 +49,13 @@ export default function Stocks() {
   /* 🔥 Fetch products (real-time) */
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "products"), (snapshot) => {
-      const data = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      }));
-      setStocks(data);
+      setStocks(
+        snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })),
+      );
+      setLoading(false);
     });
 
     return () => unsub();
@@ -49,6 +69,8 @@ export default function Stocks() {
 
   /* 🗑️ Delete product */
   const deleteStock = async (product) => {
+    if (!confirm("Delete this product?")) return;
+
     try {
       if (product.imageUrl) {
         const path = getStoragePathFromUrl(product.imageUrl);
@@ -56,9 +78,9 @@ export default function Stocks() {
       }
 
       await deleteDoc(doc(db, "products", product.id));
-      toast.success("Product deleted successfully");
+      toast.success("Product deleted");
     } catch (err) {
-      console.error("DELETE ERROR:", err);
+      console.error(err);
       toast.error("Delete failed");
     }
   };
@@ -68,7 +90,6 @@ export default function Stocks() {
     try {
       let imageUrl = editing.imageUrl;
 
-      // 🔁 Replace image if selected
       if (newImage) {
         if (editing.imageUrl) {
           const path = getStoragePathFromUrl(editing.imageUrl);
@@ -81,7 +102,7 @@ export default function Stocks() {
 
       await updateDoc(doc(db, "products", editing.id), {
         name: editing.name,
-        slug: editing.slug, // ✅ SLUG SAVED
+        slug: editing.slug,
         description: editing.description,
         quantity: Number(editing.quantity),
         price: Number(editing.price),
@@ -89,16 +110,16 @@ export default function Stocks() {
         imageUrl,
       });
 
-      toast.success("Product updated successfully ✅");
+      toast.success("Product updated");
       setEditing(null);
       setNewImage(null);
     } catch (err) {
-      console.error("UPDATE ERROR:", err);
-      toast.error("Update failed ❌");
+      console.error(err);
+      toast.error("Update failed");
     }
   };
 
-  /* 🏷️ Stock status badge */
+  /* 🏷️ Stock badge */
   const stockBadge = (qty) => {
     if (qty === 0)
       return (
@@ -143,7 +164,7 @@ export default function Stocks() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded transition ${
               filter === f
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 hover:bg-gray-200"
@@ -155,65 +176,76 @@ export default function Stocks() {
       </div>
 
       {/* 🧱 Product Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredStocks.map((p) => (
-          <div key={p.id} className="bg-white rounded-xl shadow">
-            <div className="h-44 bg-gray-100 flex items-center justify-center">
-              <img
-                src={p.imageUrl}
-                alt={p.name}
-                className="h-full object-contain"
-              />
-            </div>
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-500 ${
+          loading ? "opacity-60" : "opacity-100"
+        }`}
+      >
+        {loading
+          ? Array.from({ length: 6 }).map((_, i) => <StockSkeleton key={i} />)
+          : filteredStocks.map((p) => (
+              <div
+                key={p.id}
+                className="bg-white rounded-xl shadow hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
+                  <img
+                    src={p.imageUrl}
+                    alt={p.name}
+                    className="h-full object-contain transition-transform duration-300 hover:scale-105"
+                  />
+                </div>
 
-            <div className="p-4 space-y-2">
-              <h2 className="font-semibold text-lg truncate">{p.name}</h2>
+                <div className="p-4 space-y-2">
+                  <h2 className="font-semibold text-lg truncate">{p.name}</h2>
 
-              {stockBadge(p.quantity)}
+                  {stockBadge(p.quantity)}
 
-              <p className="text-sm text-gray-500 line-clamp-2">
-                {p.description}
-              </p>
+                  <p className="text-sm text-gray-500 line-clamp-2">
+                    {p.description}
+                  </p>
 
-              <div className="flex justify-between text-sm">
-                <span>
-                  Qty: <b>{p.quantity}</b>
-                </span>
-                <span className="font-bold text-blue-600">₹{p.price}</span>
+                  <div className="flex justify-between text-sm">
+                    <span>
+                      Qty: <b>{p.quantity}</b>
+                    </span>
+                    <span className="font-bold text-blue-600">₹{p.price}</span>
+                  </div>
+
+                  <div className="flex justify-end gap-4 pt-3">
+                    <button
+                      onClick={() =>
+                        setEditing({
+                          ...p,
+                          slug: p.slug || generateSlug(p.name),
+                        })
+                      }
+                      className="text-blue-600 hover:scale-110 transition"
+                    >
+                      <Pencil size={18} />
+                    </button>
+
+                    <button
+                      onClick={() => deleteStock(p)}
+                      className="text-red-600 hover:scale-110 transition"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
               </div>
-
-              <div className="flex justify-end gap-4 pt-3">
-                <button
-                  onClick={() =>
-                    setEditing({
-                      ...p,
-                      slug: p.slug || generateSlug(p.name),
-                    })
-                  }
-                  className="text-blue-600"
-                >
-                  <Pencil size={18} />
-                </button>
-
-                <button onClick={() => deleteStock(p)} className="text-red-600">
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+            ))}
       </div>
 
       {/* ✏️ Edit Modal */}
       {editing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-3xl">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 animate-fadeIn">
+          <div className="bg-white p-6 rounded-xl w-full max-w-3xl animate-scaleIn">
             <h2 className="text-xl font-bold mb-6">Edit Product</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* LEFT: FORM */}
+              {/* FORM */}
               <div>
-                {/* NAME */}
                 <input
                   className="w-full border p-2 mb-2"
                   placeholder="Name"
@@ -228,24 +260,10 @@ export default function Stocks() {
                   }}
                 />
 
-                {/* SLUG */}
-                {/* <input
-                  className="w-full border p-2 mb-2 bg-gray-50"
-                  placeholder="Slug"
-                  value={editing.slug}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      slug: generateSlug(e.target.value),
-                    })
-                  }
-                /> */}
-
-                {/* DESCRIPTION */}
                 <textarea
                   className="w-full border p-2 mb-2"
-                  placeholder="Description"
                   rows="3"
+                  placeholder="Description"
                   value={editing.description}
                   onChange={(e) =>
                     setEditing({
@@ -255,7 +273,6 @@ export default function Stocks() {
                   }
                 />
 
-                {/* PRICE */}
                 <input
                   type="number"
                   className="w-full border p-2 mb-2"
@@ -269,7 +286,6 @@ export default function Stocks() {
                   }
                 />
 
-                {/* QUANTITY */}
                 <input
                   type="number"
                   className="w-full border p-2 mb-2"
@@ -283,7 +299,6 @@ export default function Stocks() {
                   }
                 />
 
-                {/* PACKAGE */}
                 <select
                   className="w-full border p-2 mb-3"
                   value={editing.packageType}
@@ -299,16 +314,14 @@ export default function Stocks() {
                   <option>Family</option>
                 </select>
 
-                {/* IMAGE INPUT */}
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setNewImage(e.target.files[0])}
-                  className="mb-4"
                 />
               </div>
 
-              {/* RIGHT: IMAGE PREVIEW */}
+              {/* IMAGE PREVIEW */}
               <div className="flex items-center justify-center">
                 <div className="w-full h-64 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden">
                   <img
@@ -318,13 +331,12 @@ export default function Stocks() {
                         : editing.imageUrl
                     }
                     alt="Preview"
-                    className="max-h-full max-w-full object-contain"
+                    className="max-h-full max-w-full object-contain transition"
                   />
                 </div>
               </div>
             </div>
 
-            {/* ACTIONS */}
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => {

@@ -7,6 +7,7 @@ import Users from "../components/Users";
 import Orders from "../components/Orders";
 import PageLoader from "../components/PageLoader";
 import MobileNavbar from "../components/MobileNavbar";
+import Newsletter from "../components/Newsletter";
 
 export default function CookiesAdmin() {
   const [currentPage, setCurrentPage] = useState(() => {
@@ -58,6 +59,7 @@ export default function CookiesAdmin() {
               {currentPage === "stocks" && <Stocks />}
               {currentPage === "users" && <Users />}
               {currentPage === "orders" && <Orders />}
+              {currentPage === "newsletter" && <Newsletter />}
             </>
           )}
         </div>

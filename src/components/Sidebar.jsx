@@ -6,6 +6,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  Mail,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -20,6 +21,7 @@ export default function Sidebar({
     { id: "addStock", label: "Add Stock", icon: Plus },
     { id: "users", label: "Users", icon: Users },
     { id: "orders", label: "Orders", icon: ShoppingCart },
+    { id: "newsletter", label: "Newsletter", icon: Mail },
   ];
 
   return (
