@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Mail,
+  Image,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -15,14 +16,17 @@ export default function Sidebar({
   collapsed,
   setCollapsed,
 }) {
-  const menu = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "stocks", label: "Stock", icon: Package },
-    { id: "addStock", label: "Add Stock", icon: Plus },
-    { id: "users", label: "Users", icon: Users },
-    { id: "orders", label: "Orders", icon: ShoppingCart },
-    { id: "newsletter", label: "Newsletter", icon: Mail },
-  ];
+const menu = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "stocks", label: "Stock", icon: Package },
+  { id: "addStock", label: "Add Stock", icon: Plus },
+  { id: "users", label: "Users", icon: Users },
+  { id: "heroBanner", label: "Hero Banner", icon: Image },
+  { id: "orders", label: "Orders", icon: ShoppingCart },
+  { id: "bulkEnquiry", label: "Bulk Enquiry", icon: Mail },
+  { id: "distributorEnquiry", label: "Distributor Enquiry", icon: Mail },
+  { id: "newsletter", label: "Newsletter", icon: Mail },
+];
 
   return (
     <div

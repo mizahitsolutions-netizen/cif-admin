@@ -8,6 +8,9 @@ import Orders from "../components/Orders";
 import PageLoader from "../components/PageLoader";
 import MobileNavbar from "../components/MobileNavbar";
 import Newsletter from "../components/Newsletter";
+import HeroBanner from "../components/HeroBanner";
+import BulkEnquiryAdmin from "../components/BulkEnquiryAdmin";
+import DistributorEnquiryAdmin from "../components/DistributorEnquiryAdmin";
 
 export default function CookiesAdmin() {
   const [currentPage, setCurrentPage] = useState(() => {
@@ -58,8 +61,13 @@ export default function CookiesAdmin() {
               {currentPage === "addStock" && <AddStock />}
               {currentPage === "stocks" && <Stocks />}
               {currentPage === "users" && <Users />}
+              {currentPage === "heroBanner" && <HeroBanner />}
               {currentPage === "orders" && <Orders />}
               {currentPage === "newsletter" && <Newsletter />}
+              {currentPage === "bulkEnquiry" && <BulkEnquiryAdmin />}
+              {currentPage === "distributorEnquiry" && (
+                <DistributorEnquiryAdmin />
+              )}
             </>
           )}
         </div>

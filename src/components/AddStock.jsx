@@ -70,7 +70,7 @@ export default function AddStock() {
 
       /* 🔹 Compress + Upload Image */
       const webpImage = await compressImageToWebP(newStock.image);
-      const imageUrl = await uploadToFirebase(webpImage);
+      const imageUrl = await uploadToFirebase(webpImage, "products");
 
       /* 🔹 Save product */
       await addDoc(collection(db, "products"), {
