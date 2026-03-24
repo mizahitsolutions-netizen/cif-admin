@@ -7,6 +7,12 @@ export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  // 🔍 Filters
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [quickFilter, setQuickFilter] = useState("ALL");
   // 🔥 Real-time orders
   useEffect(() => {
     const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
@@ -22,14 +28,188 @@ export default function Orders() {
     return () => unsub();
   }, []);
 
-  const totalItems = orders.items?.reduce(
-    (sum, item) => sum + Number(item.qty || 0),
-    0,
-  );
+  // 🎯 Filtering Logic
+  // const filteredOrders = orders.filter((order) => {
+  //   const orderDate = order.createdAt?.seconds
+  //     ? new Date(order.createdAt.seconds * 1000)
+  //     : null;
+
+  //   // ✅ Status filter
+  //   const matchesStatus =
+  //     statusFilter === "All" || order.status === statusFilter;
+
+  //   // ✅ Search filter
+  //   const matchesSearch = order.address?.name
+  //     ?.toLowerCase()
+  //     .includes(search.toLowerCase());
+
+  //   // ✅ Date filter
+  //   const matchesStart =
+  //     !startDate || (orderDate && orderDate >= new Date(startDate));
+
+  //   const matchesEnd =
+  //     !endDate || (orderDate && orderDate <= new Date(endDate + "T23:59:59"));
+
+  //   return matchesStatus && matchesSearch && matchesStart && matchesEnd;
+  // });
+  const filteredOrders = orders.filter((order) => {
+    const orderDate = order.createdAt?.seconds
+      ? new Date(order.createdAt.seconds * 1000)
+      : null;
+
+    const now = new Date();
+
+    // 🟢 Today
+    const isToday =
+      orderDate && orderDate.toDateString() === now.toDateString();
+
+    // 🔵 Last 7 Days
+    const last7 = new Date();
+    last7.setDate(now.getDate() - 7);
+
+    const isLast7Days = orderDate && orderDate >= last7;
+
+    // 🟣 This Month
+    const isThisMonth =
+      orderDate &&
+      orderDate.getMonth() === now.getMonth() &&
+      orderDate.getFullYear() === now.getFullYear();
+
+    // 🎯 Apply Quick Filter
+    let matchesQuick = true;
+
+    if (quickFilter === "TODAY") matchesQuick = isToday;
+    else if (quickFilter === "LAST7") matchesQuick = isLast7Days;
+    else if (quickFilter === "MONTH") matchesQuick = isThisMonth;
+
+    // 📦 Status
+    const matchesStatus =
+      statusFilter === "All" || order.status === statusFilter;
+
+    // 🔍 Search
+    const matchesSearch = order.address?.name
+      ?.toLowerCase()
+      .includes(search.toLowerCase());
+
+    // 📅 Manual Date Range (only if no quick filter)
+    const matchesStart =
+      quickFilter !== "ALL" ||
+      !startDate ||
+      (orderDate && orderDate >= new Date(startDate));
+
+    const matchesEnd =
+      quickFilter !== "ALL" ||
+      !endDate ||
+      (orderDate && orderDate <= new Date(endDate + "T23:59:59"));
+
+    return (
+      matchesQuick &&
+      matchesStatus &&
+      matchesSearch &&
+      matchesStart &&
+      matchesEnd
+    );
+  });
+
+  const formatDate = (timestamp) => {
+    if (!timestamp?.seconds) return "—";
+
+    const date = new Date(timestamp.seconds * 1000);
+
+    return date.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+  console.log(orders[0]);
 
   return (
     <>
-      <h1 className="text-3xl font-bold mb-8">Orders</h1>
+      <h1 className="text-3xl font-bold mb-6">Orders</h1>
+
+      {/* 🎛️ Filters */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        {/* 🔍 Search */}
+        <input
+          type="text"
+          placeholder="Search customer..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border px-4 py-2 rounded-lg w-full md:w-1/4"
+        />
+
+        {/* 📦 Status */}
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="border px-4 py-2 rounded-lg w-full md:w-1/5"
+        >
+          <option value="All">All Status</option>
+          <option value="created">Created</option>
+          <option value="confirmed">Confrimed</option>
+          <option value="Delivered">Delivered</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+
+        <div className="flex flex-wrap gap-3 mb-4">
+          <button
+            onClick={() => setQuickFilter("TODAY")}
+            className={`px-4 py-2 rounded-lg border ${
+              quickFilter === "TODAY" ? "bg-green-600 text-white" : "bg-white"
+            }`}
+          >
+            Today
+          </button>
+
+          <button
+            onClick={() => setQuickFilter("LAST7")}
+            className={`px-4 py-2 rounded-lg border ${
+              quickFilter === "LAST7" ? "bg-blue-600 text-white" : "bg-white"
+            }`}
+          >
+            Last 7 Days
+          </button>
+
+          <button
+            onClick={() => setQuickFilter("MONTH")}
+            className={`px-4 py-2 rounded-lg border ${
+              quickFilter === "MONTH" ? "bg-purple-600 text-white" : "bg-white"
+            }`}
+          >
+            This Month
+          </button>
+
+          <button
+            onClick={() => {
+              setQuickFilter("ALL");
+              setStartDate("");
+              setEndDate("");
+            }}
+            className="px-4 py-2 rounded-lg border bg-gray-200"
+          >
+            Clear
+          </button>
+        </div>
+
+        {/* 📅 Start Date */}
+        {/* <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+          className="border px-4 py-2 rounded-lg w-full md:w-1/5"
+        /> */}
+
+        {/* 📅 End Date */}
+        {/* <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+          className="border px-4 py-2 rounded-lg w-full md:w-1/5"
+        /> */}
+      </div>
 
       {/* 🧱 Desktop Table */}
       <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
@@ -37,6 +217,7 @@ export default function Orders() {
           <thead className="bg-gray-50">
             <tr>
               <th className="p-4 text-left">Order ID</th>
+              <th className="p-4 text-left">Order Date</th>
               <th className="p-4 text-left">Customer</th>
               <th className="p-4 text-left">Items</th>
               <th className="p-4 text-left">Total</th>
@@ -46,15 +227,15 @@ export default function Orders() {
           </thead>
 
           <tbody>
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <tr key={order.id} className="border-t">
                 <td className="p-4">#{order.id.slice(0, 6)}</td>
-                <td className="p-4"> {order.address?.name || "—"}</td>
+                <td className="p-4 ">{formatDate(order.createdAt)}</td>{" "}
+                <td className="p-4">{order.address?.name || "—"}</td>
                 <td className="p-4 text-sm">
                   {order.items.length} products /{" "}
                   {order.items.reduce((s, i) => s + i.qty, 0)} items
                 </td>
-
                 <td className="p-4">₹{Number(order.total || 0).toFixed(2)}</td>
                 <td className="p-4">
                   <span
@@ -87,7 +268,7 @@ export default function Orders() {
 
       {/* 📱 Mobile Cards */}
       <div className="md:hidden space-y-4">
-        {orders.map((order) => (
+        {filteredOrders.map((order) => (
           <div
             key={order.id}
             className="bg-white rounded-xl shadow p-4 space-y-2"
@@ -102,6 +283,10 @@ export default function Orders() {
               </button>
             </div>
 
+            <p className="text-xs text-gray-500">
+              {formatDate(order.createdAt)}
+            </p>
+
             <p className="text-sm text-gray-600">{order.address?.name}</p>
 
             <div className="flex justify-between text-sm">
@@ -112,13 +297,14 @@ export default function Orders() {
                 )}{" "}
                 items
               </span>
+
               <span className="font-semibold">
                 ₹{Number(order.total || 0).toFixed(2)}
               </span>
             </div>
 
             <span
-              className={`inline-block text-xs font-semibold ${
+              className={`text-xs font-semibold ${
                 order.status === "Delivered"
                   ? "text-green-600"
                   : order.status === "Processing"
@@ -132,7 +318,7 @@ export default function Orders() {
         ))}
       </div>
 
-      {/* 👁️ Order Details Modal */}
+      {/* 👁️ Modal */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -140,76 +326,36 @@ export default function Orders() {
               Order #{selectedOrder.id}
             </h2>
 
-            {/* 👤 Customer Details */}
-            <div className="mb-6">
-              <h3 className="font-semibold mb-2">Customer Details</h3>
-              <div className="text-sm text-gray-700 space-y-1">
-                <p>
-                  <b>Name:</b> {selectedOrder.address?.name}
-                </p>
-                <p>
-                  <b>Phone:</b> {selectedOrder.address?.phone}
-                </p>
-                <p>
-                  <b>Address:</b> {selectedOrder.address?.line1},{" "}
-                  {selectedOrder.address?.line2}, {selectedOrder.address?.city},{" "}
-                  {selectedOrder.address?.state},{" "}
-                  {selectedOrder.address?.country}
-                </p>
-              </div>
+            <div className="mb-6 text-sm space-y-1">
+              <p>
+                <b>Name:</b> {selectedOrder.address?.name}
+              </p>
+              <p>
+                <b>Phone:</b> {selectedOrder.address?.phone}
+              </p>
+              <p>
+                <b>City:</b> {selectedOrder.address?.city}
+              </p>
             </div>
 
-            {/* 📦 Products */}
-            <div className="mb-6">
-              <h3 className="font-semibold mb-3">Ordered Products</h3>
-
-              <div className="space-y-4">
-                {selectedOrder.items?.map((item, index) => (
-                  <div
-                    key={index}
-                    className="flex gap-4 items-center border rounded-lg p-3"
-                  >
-                    {/* 🖼 Product Image */}
-                    <img
-                      src={item.imageUrl}
-                      alt={item.name}
-                      className="w-20 h-20 object-contain border rounded"
-                    />
-
-                    {/* 📄 Product Info */}
-                    <div className="flex-1">
-                      <p className="font-semibold">{item.name}</p>
-                      <p className="text-sm text-gray-600">
-                        Package: {item.packageType}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Quantity: {item.qty}
-                      </p>
-                    </div>
-
-                    {/* 💰 Price */}
-                    <div className="text-right font-semibold">
-                      ₹{Number(item.price).toFixed(2)}
-                    </div>
+            <div className="space-y-4">
+              {selectedOrder.items?.map((item, i) => (
+                <div key={i} className="flex gap-4 border p-3 rounded">
+                  <img
+                    src={item.imageUrl}
+                    className="w-16 h-16 object-contain"
+                  />
+                  <div className="flex-1">
+                    <p>{item.name}</p>
+                    <p className="text-sm text-gray-500">Qty: {item.qty}</p>
                   </div>
-                ))}
-              </div>
+                  <div>₹{item.price}</div>
+                </div>
+              ))}
             </div>
 
-            {/* 💳 Order Summary */}
-            <div className="border-t pt-4 text-sm space-y-1">
-              <p>
-                <b>Payment Status:</b> {selectedOrder.paymentStatus}
-              </p>
-              <p>
-                <b>Order Status:</b> {selectedOrder.status}
-              </p>
-              <p className="text-lg font-bold">
-                Total: ₹{Number(selectedOrder.total).toFixed(2)}
-              </p>
-            </div>
+            <div className="mt-4 font-bold">Total: ₹{selectedOrder.total}</div>
 
-            {/* Actions */}
             <div className="flex justify-end mt-6">
               <button
                 onClick={() => setSelectedOrder(null)}

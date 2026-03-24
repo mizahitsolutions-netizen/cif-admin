@@ -11,6 +11,8 @@ import Newsletter from "../components/Newsletter";
 import HeroBanner from "../components/HeroBanner";
 import BulkEnquiryAdmin from "../components/BulkEnquiryAdmin";
 import DistributorEnquiryAdmin from "../components/DistributorEnquiryAdmin";
+import AddReview from "../components/AddReview";
+import ReviewsTable from "../components/ReviewTables";
 
 export default function CookiesAdmin() {
   const [currentPage, setCurrentPage] = useState(() => {
@@ -68,6 +70,8 @@ export default function CookiesAdmin() {
               {currentPage === "distributorEnquiry" && (
                 <DistributorEnquiryAdmin />
               )}
+              {currentPage === "addreviews" && <AddReview />}
+              {currentPage === "reviewsTable" && <ReviewsTable />}
             </>
           )}
         </div>
