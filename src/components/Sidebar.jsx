@@ -94,7 +94,7 @@ export default function Sidebar({
       <div className="flex items-center justify-between p-4 border-b border-gray-800">
         <div className="flex items-center gap-3 overflow-hidden">
           <img
-            src="/fav.png"
+            src="/images/fav.png"
             alt="Icon"
             className={`object-contain transition-all duration-300 ${
               collapsed ? "w-8 h-8" : "w-10 h-10"
@@ -102,7 +102,7 @@ export default function Sidebar({
           />
 
           <img
-            src="/logo.png"
+            src="/images/logo.png"
             alt="Logo"
             className={`object-contain transition-all duration-300 ${
               collapsed ? "w-0 opacity-0" : "w-28 opacity-100"
