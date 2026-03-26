@@ -47,7 +47,7 @@ export default function Login({ onLogin }) {
       >
         {/* Logo */}
         <div className="flex justify-center mb-4">
-          <img src="/logo.png" alt="Logo" className="h-16 object-contain" />
+          <img src="/images/logo.png" alt="Logo" className="h-16 object-contain" />
         </div>
 
         <h2 className="text-2xl font-bold text-center mb-6">Admin Login</h2>

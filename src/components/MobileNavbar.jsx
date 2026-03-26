@@ -53,7 +53,7 @@ export default function MobileNavbar({ currentPage, setCurrentPage }) {
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 md:hidden">
         <div className="bg-gray-900 text-white rounded-full shadow-2xl px-6 py-3 flex items-center gap-4">
           {/* Logo */}
-          <img src="/fav.png" alt="Logo" className="w-8 h-8 object-contain" />
+          <img src="/images/fav.png" alt="Logo" className="w-8 h-8 object-contain" />
 
           {/* Menu */}
           <div className="flex items-center gap-4">
