@@ -18,6 +18,8 @@ import {
   ArrowUp,
   ArrowDown,
   Image as ImageIcon,
+  Pencil,
+  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -38,10 +40,12 @@ const BannerSkeleton = () => (
 export default function HeroBanner() {
   const [banners, setBanners] = useState([]);
   const [image, setImage] = useState(null);
+  const [link, setLink] = useState("");
+  const [editingBanner, setEditingBanner] = useState(null);
   const [loadingUpload, setLoadingUpload] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  /* Fetch banners realtime sorted */
+  /* Fetch banners */
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "heroBanners"), (snap) => {
       const data = snap.docs
@@ -58,9 +62,9 @@ export default function HeroBanner() {
     return () => unsub();
   }, []);
 
-  /* Upload banner */
-  const uploadBanner = async () => {
-    if (!image) {
+  /* Upload or Update */
+  const handleSubmit = async () => {
+    if (!image && !editingBanner) {
       toast.error("Select image first");
       return;
     }
@@ -68,26 +72,47 @@ export default function HeroBanner() {
     try {
       setLoadingUpload(true);
 
-      const webp = await compressImageToWebP(image);
-      const imageUrl = await uploadToFirebase(webp, "heroBanners");
+      let imageUrl = editingBanner?.imageUrl || "";
 
-      await addDoc(collection(db, "heroBanners"), {
-        imageUrl,
-        order: banners.length,
-        createdAt: serverTimestamp(),
-      });
+      // Upload new image if exists
+      if (image) {
+        const webp = await compressImageToWebP(image);
+        imageUrl = await uploadToFirebase(webp, "heroBanners");
+      }
 
-      toast.success("Banner uploaded");
+      if (editingBanner) {
+        // UPDATE
+        await updateDoc(doc(db, "heroBanners", editingBanner.id), {
+          imageUrl,
+          link: link || "",
+        });
+
+        toast.success("Banner updated");
+      } else {
+        // CREATE
+        await addDoc(collection(db, "heroBanners"), {
+          imageUrl,
+          link: link || "",
+          order: banners.length,
+          createdAt: serverTimestamp(),
+        });
+
+        toast.success("Banner uploaded");
+      }
+
+      // Reset
       setImage(null);
+      setLink("");
+      setEditingBanner(null);
     } catch (err) {
       console.error(err);
-      toast.error("Upload failed");
+      toast.error("Operation failed");
     } finally {
       setLoadingUpload(false);
     }
   };
 
-  /* Delete banner */
+  /* Delete */
   const deleteBanner = async (banner) => {
     if (!confirm("Delete this banner?")) return;
 
@@ -106,10 +131,9 @@ export default function HeroBanner() {
     }
   };
 
-  /* Move banner up/down */
+  /* Move */
   const moveBanner = async (index, direction) => {
     const newIndex = index + direction;
-
     if (newIndex < 0 || newIndex >= banners.length) return;
 
     const current = banners[index];
@@ -124,18 +148,32 @@ export default function HeroBanner() {
         order: current.order,
       });
 
-      toast.success("Banner order updated");
+      toast.success("Order updated");
     } catch (err) {
       console.error(err);
       toast.error("Reorder failed");
     }
   };
 
+  /* Start edit */
+  const startEdit = (banner) => {
+    setEditingBanner(banner);
+    setLink(banner.link || "");
+    setImage(null);
+  };
+
+  /* Cancel edit */
+  const cancelEdit = () => {
+    setEditingBanner(null);
+    setImage(null);
+    setLink("");
+  };
+
   return (
     <div className="animate-fadeIn">
       <h1 className="text-3xl font-bold mb-6">Hero Banner Management</h1>
 
-      {/* Upload Section */}
+      {/* Upload / Edit Section */}
       <div className="bg-white rounded-xl shadow p-6 mb-8">
         <div className="flex flex-col md:flex-row gap-6 items-center">
           {/* Preview */}
@@ -143,10 +181,15 @@ export default function HeroBanner() {
             {image ? (
               <img
                 src={URL.createObjectURL(image)}
-                className="h-full object-contain animate-fadeIn"
+                className="h-full object-contain"
+              />
+            ) : editingBanner ? (
+              <img
+                src={editingBanner.imageUrl}
+                className="h-full object-contain"
               />
             ) : (
-              <div className="flex flex-col items-center text-gray-400">
+              <div className="text-gray-400 flex flex-col items-center">
                 <ImageIcon size={40} />
                 <span>Preview</span>
               </div>
@@ -154,7 +197,7 @@ export default function HeroBanner() {
           </div>
 
           {/* Controls */}
-          <div>
+          <div className="w-full">
             <input
               type="file"
               accept="image/*"
@@ -162,45 +205,65 @@ export default function HeroBanner() {
               className="mb-3"
             />
 
-            <button
-              onClick={uploadBanner}
-              disabled={loadingUpload}
-              className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition hover:scale-105"
-            >
-              <Upload size={18} />
-              {loadingUpload ? "Uploading..." : "Upload Banner"}
-            </button>
+            <input
+              type="text"
+              placeholder="Enter product link (https://...)"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              className="border px-3 py-2 rounded w-full mb-3"
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleSubmit}
+                disabled={loadingUpload}
+                className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                <Upload size={18} />
+                {loadingUpload
+                  ? "Processing..."
+                  : editingBanner
+                    ? "Update Banner"
+                    : "Upload Banner"}
+              </button>
+
+              {editingBanner && (
+                <button
+                  onClick={cancelEdit}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
+                >
+                  <X size={16} />
+                  Cancel
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Banner Grid */}
-      <div
-        className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-500 ${
-          loading ? "opacity-60" : "opacity-100"
-        }`}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {loading
           ? Array.from({ length: 3 }).map((_, i) => <BannerSkeleton key={i} />)
           : banners.map((banner, index) => (
               <div
                 key={banner.id}
-                className="bg-white rounded-xl shadow hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
+                className="bg-white rounded-xl shadow hover:shadow-lg transition"
               >
                 <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden">
                   <img
                     src={banner.imageUrl}
-                    className="h-full object-contain transition-transform duration-300 hover:scale-105"
+                    className="h-full object-contain hover:scale-105 transition"
                   />
                 </div>
 
                 <div className="p-4 flex justify-between items-center">
-                  {/* Order controls */}
+                  {/* Move */}
                   <div className="flex gap-2">
                     <button
                       disabled={index === 0}
                       onClick={() => moveBanner(index, -1)}
-                      className="text-gray-600 hover:text-black disabled:opacity-30 hover:scale-110 transition"
+                      className="disabled:opacity-30"
                     >
                       <ArrowUp size={18} />
                     </button>
@@ -208,20 +271,36 @@ export default function HeroBanner() {
                     <button
                       disabled={index === banners.length - 1}
                       onClick={() => moveBanner(index, 1)}
-                      className="text-gray-600 hover:text-black disabled:opacity-30 hover:scale-110 transition"
+                      className="disabled:opacity-30"
                     >
                       <ArrowDown size={18} />
                     </button>
                   </div>
 
-                  {/* Delete */}
-                  <button
-                    onClick={() => deleteBanner(banner)}
-                    className="text-red-600 hover:scale-110 transition"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  {/* Actions */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => startEdit(banner)}
+                      className="text-blue-600"
+                    >
+                      <Pencil size={18} />
+                    </button>
+
+                    <button
+                      onClick={() => deleteBanner(banner)}
+                      className="text-red-600"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
+
+                {/* Link Preview */}
+                {banner.link && (
+                  <div className="px-4 pb-4 text-sm text-gray-500 truncate">
+                    🔗 {banner.link}
+                  </div>
+                )}
               </div>
             ))}
       </div>
