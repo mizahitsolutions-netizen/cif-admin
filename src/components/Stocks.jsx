@@ -108,6 +108,7 @@ export default function Stocks() {
         price: Number(editing.price),
         packageType: editing.packageType,
         imageUrl,
+        isNew: editing.isNew || false,
       });
 
       toast.success("Product updated");
@@ -144,7 +145,13 @@ export default function Stocks() {
 
   /* 🔍 Filter + search */
   const filteredStocks = stocks
-    .filter((p) => filter === "All" || p.packageType === filter)
+    .filter((p) => {
+      if (filter === "All") return true;
+
+      if (filter === "New") return p.isNew === true;
+
+      return p.packageType === filter;
+    })
     .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
@@ -160,7 +167,7 @@ export default function Stocks() {
           onChange={(e) => setSearch(e.target.value)}
         />
 
-        {["All", "Small", "Medium", "Family"].map((f) => (
+        {["All", "New", "Small", "Medium", "Family"].map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
@@ -188,12 +195,17 @@ export default function Stocks() {
                 key={p.id}
                 className="bg-white rounded-xl shadow hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
               >
-                <div className="h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
+                <div className="relative h-44 bg-gray-100 flex items-center justify-center overflow-hidden">
                   <img
                     src={p.imageUrl}
                     alt={p.name}
                     className="h-full object-contain transition-transform duration-300 hover:scale-105"
                   />
+                  {p.isNew && (
+                    <span className="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded shadow">
+                      NEW
+                    </span>
+                  )}
                 </div>
 
                 <div className="p-4 space-y-2">
@@ -218,6 +230,7 @@ export default function Stocks() {
                         setEditing({
                           ...p,
                           slug: p.slug || generateSlug(p.name),
+                          isNew: p.isNew || false,
                         })
                       }
                       className="text-blue-600 hover:scale-110 transition"
@@ -313,6 +326,23 @@ export default function Stocks() {
                   <option>Medium</option>
                   <option>Family</option>
                 </select>
+
+                {/* NEW TAG */}
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={editing.isNew || false}
+                    onChange={(e) =>
+                      setEditing({
+                        ...editing,
+                        isNew: e.target.checked,
+                      })
+                    }
+                  />
+                  <label className="text-sm font-medium">
+                    Mark as New Launch 🔥
+                  </label>
+                </div>
 
                 <input
                   type="file"

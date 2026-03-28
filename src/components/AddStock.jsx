@@ -31,6 +31,7 @@ export default function AddStock() {
     price: "",
     packageType: "",
     image: null,
+    isNew: true,
   });
 
   /* 🔍 Check slug uniqueness */
@@ -82,6 +83,7 @@ export default function AddStock() {
         packageType: newStock.packageType,
         imageUrl,
         createdAt: serverTimestamp(),
+        isNew: newStock.isNew || false
       });
 
       toast.success("Product added successfully ✅", {
@@ -193,6 +195,21 @@ export default function AddStock() {
           <option value="Medium">Medium</option>
           <option value="Family">Family</option>
         </select>
+
+        {/* New Tag */}
+        <div className="flex items-center gap-2 mb-4">
+          <input
+            type="checkbox"
+            checked={newStock.isNew}
+            onChange={(e) =>
+              setNewStock({
+                ...newStock,
+                isNew: e.target.checked,
+              })
+            }
+          />
+          <label className="text-sm font-medium">Mark as New Launch 🔥</label>
+        </div>
 
         {/* Image */}
         {newStock.image && (
