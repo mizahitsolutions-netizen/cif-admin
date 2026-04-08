@@ -13,6 +13,8 @@ import BulkEnquiryAdmin from "../components/BulkEnquiryAdmin";
 import DistributorEnquiryAdmin from "../components/DistributorEnquiryAdmin";
 import AddReview from "../components/AddReview";
 import ReviewsTable from "../components/ReviewTables";
+import AdminAbout from "../components/AdminAbout";
+import AdminVideos from "../components/AdminVideos";
 
 export default function CookiesAdmin() {
   const [currentPage, setCurrentPage] = useState(() => {
@@ -70,6 +72,8 @@ export default function CookiesAdmin() {
               {currentPage === "distributorEnquiry" && (
                 <DistributorEnquiryAdmin />
               )}
+              {currentPage === "adminVideos" && <AdminVideos />}
+              {currentPage === "aboutUs" && <AdminAbout />}
               {currentPage === "addreviews" && <AddReview />}
               {currentPage === "reviewsTable" && <ReviewsTable />}
             </>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, Video } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import {
@@ -18,6 +18,7 @@ import {
   PlusCircle,
   Inbox,
   UserCheck,
+  Info,
 } from "lucide-react";
 
 export default function Sidebar({
@@ -42,6 +43,7 @@ export default function Sidebar({
       submenu: [
         { id: "stocks", label: "All Products", icon: List },
         { id: "addStock", label: "Add Product", icon: PlusCircle },
+        { id: "adminVideos", label: "Add Video", icon: Video },
       ],
     },
 
@@ -50,14 +52,19 @@ export default function Sidebar({
 
     {
       id: "enquiry",
-      label: "Enquiry",
-      icon: Inbox,
+      label: "Pages",
+      icon: Mail,
       submenu: [
-        { id: "bulkEnquiry", label: "Bulk Enquiry", icon: Mail },
+        { id: "bulkEnquiry", label: "Bulk Enquiry", icon: Inbox },
         {
           id: "distributorEnquiry",
           label: "Distributor Enquiry",
           icon: UserCheck,
+        },
+        {
+          id: "aboutUs",
+          label: "About Us Page",
+          icon: Info,
         },
       ],
     },
