@@ -7,13 +7,11 @@ export default function Orders() {
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  // 🔍 Filters
   const [statusFilter, setStatusFilter] = useState("All");
   const [search, setSearch] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
   const [quickFilter, setQuickFilter] = useState("ALL");
-  // 🔥 Real-time orders
+
+  /* 🔥 FETCH ORDERS */
   useEffect(() => {
     const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
@@ -28,30 +26,7 @@ export default function Orders() {
     return () => unsub();
   }, []);
 
-  // 🎯 Filtering Logic
-  // const filteredOrders = orders.filter((order) => {
-  //   const orderDate = order.createdAt?.seconds
-  //     ? new Date(order.createdAt.seconds * 1000)
-  //     : null;
-
-  //   // ✅ Status filter
-  //   const matchesStatus =
-  //     statusFilter === "All" || order.status === statusFilter;
-
-  //   // ✅ Search filter
-  //   const matchesSearch = order.address?.name
-  //     ?.toLowerCase()
-  //     .includes(search.toLowerCase());
-
-  //   // ✅ Date filter
-  //   const matchesStart =
-  //     !startDate || (orderDate && orderDate >= new Date(startDate));
-
-  //   const matchesEnd =
-  //     !endDate || (orderDate && orderDate <= new Date(endDate + "T23:59:59"));
-
-  //   return matchesStatus && matchesSearch && matchesStart && matchesEnd;
-  // });
+  /* 🔥 FILTERING */
   const filteredOrders = orders.filter((order) => {
     const orderDate = order.createdAt?.seconds
       ? new Date(order.createdAt.seconds * 1000)
@@ -59,58 +34,39 @@ export default function Orders() {
 
     const now = new Date();
 
-    // 🟢 Today
     const isToday =
       orderDate && orderDate.toDateString() === now.toDateString();
 
-    // 🔵 Last 7 Days
     const last7 = new Date();
     last7.setDate(now.getDate() - 7);
 
     const isLast7Days = orderDate && orderDate >= last7;
 
-    // 🟣 This Month
     const isThisMonth =
       orderDate &&
       orderDate.getMonth() === now.getMonth() &&
       orderDate.getFullYear() === now.getFullYear();
 
-    // 🎯 Apply Quick Filter
     let matchesQuick = true;
 
     if (quickFilter === "TODAY") matchesQuick = isToday;
     else if (quickFilter === "LAST7") matchesQuick = isLast7Days;
     else if (quickFilter === "MONTH") matchesQuick = isThisMonth;
 
-    // 📦 Status
+    /* ✅ FIXED STATUS MATCH */
     const matchesStatus =
-      statusFilter === "All" || order.status === statusFilter;
+      statusFilter === "All" ||
+      order.status?.toLowerCase() === statusFilter.toLowerCase();
 
-    // 🔍 Search
-    const matchesSearch = order.address?.name
-      ?.toLowerCase()
+    /* ✅ SAFE SEARCH */
+    const matchesSearch = (order.address?.name || "")
+      .toLowerCase()
       .includes(search.toLowerCase());
 
-    // 📅 Manual Date Range (only if no quick filter)
-    const matchesStart =
-      quickFilter !== "ALL" ||
-      !startDate ||
-      (orderDate && orderDate >= new Date(startDate));
-
-    const matchesEnd =
-      quickFilter !== "ALL" ||
-      !endDate ||
-      (orderDate && orderDate <= new Date(endDate + "T23:59:59"));
-
-    return (
-      matchesQuick &&
-      matchesStatus &&
-      matchesSearch &&
-      matchesStart &&
-      matchesEnd
-    );
+    return matchesQuick && matchesStatus && matchesSearch;
   });
 
+  /* 🔥 DATE FORMAT */
   const formatDate = (timestamp) => {
     if (!timestamp?.seconds) return "—";
 
@@ -124,15 +80,26 @@ export default function Orders() {
       minute: "2-digit",
     });
   };
-  console.log(orders[0]);
+
+  /* 🔥 STATUS COLOR FIX */
+  const getStatusStyle = (status) => {
+    const s = status?.toLowerCase();
+
+    if (s === "delivered") return "bg-green-100 text-green-800";
+    if (s === "confirmed") return "bg-blue-100 text-blue-800";
+    if (s === "placed") return "bg-purple-100 text-purple-800";
+    if (s === "cancelled") return "bg-red-100 text-red-800";
+
+    return "bg-yellow-100 text-yellow-800"; // created / default
+  };
+
 
   return (
     <>
       <h1 className="text-3xl font-bold mb-6">Orders</h1>
 
-      {/* 🎛️ Filters */}
+      {/* 🔥 FILTERS */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
-        {/* 🔍 Search */}
         <input
           type="text"
           placeholder="Search customer..."
@@ -141,7 +108,6 @@ export default function Orders() {
           className="border px-4 py-2 rounded-lg w-full md:w-1/4"
         />
 
-        {/* 📦 Status */}
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -149,12 +115,13 @@ export default function Orders() {
         >
           <option value="All">All Status</option>
           <option value="created">Created</option>
-          <option value="confirmed">Confrimed</option>
-          <option value="Delivered">Delivered</option>
-          <option value="Cancelled">Cancelled</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="placed">Placed</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
         </select>
 
-        <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setQuickFilter("TODAY")}
             className={`px-4 py-2 rounded-lg border ${
@@ -183,35 +150,15 @@ export default function Orders() {
           </button>
 
           <button
-            onClick={() => {
-              setQuickFilter("ALL");
-              setStartDate("");
-              setEndDate("");
-            }}
+            onClick={() => setQuickFilter("ALL")}
             className="px-4 py-2 rounded-lg border bg-gray-200"
           >
             Clear
           </button>
         </div>
-
-        {/* 📅 Start Date */}
-        {/* <input
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="border px-4 py-2 rounded-lg w-full md:w-1/5"
-        /> */}
-
-        {/* 📅 End Date */}
-        {/* <input
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className="border px-4 py-2 rounded-lg w-full md:w-1/5"
-        /> */}
       </div>
 
-      {/* 🧱 Desktop Table */}
+      {/* 🧱 TABLE */}
       <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -221,6 +168,7 @@ export default function Orders() {
               <th className="p-4 text-left">Customer</th>
               <th className="p-4 text-left">Items</th>
               <th className="p-4 text-left">Total</th>
+              <th className="p-4 text-left">Payment</th>
               <th className="p-4 text-left">Status</th>
               <th className="p-4 text-left">Action</th>
             </tr>
@@ -230,28 +178,30 @@ export default function Orders() {
             {filteredOrders.map((order) => (
               <tr key={order.id} className="border-t">
                 <td className="p-4">#{order.id.slice(0, 6)}</td>
-                <td className="p-4 ">{formatDate(order.createdAt)}</td>{" "}
-                <td className="p-4">{order.address?.name || "—"}</td>
-                <td className="p-4 text-sm">
-                  {order.items.length} products /{" "}
-                  {order.items.reduce((s, i) => s + i.qty, 0)} items
+                <td className="p-4">{formatDate(order.createdAt)}</td>
+                <td className="p-4">
+                  {order.address?.name || order.address?.firstName || "—"}
                 </td>
+
+                <td className="p-4 text-sm">
+                  {order.items?.length || 0} products /{" "}
+                  {order.items?.reduce((s, i) => s + i.qty, 0) || 0} items
+                </td>
+
                 <td className="p-4">₹{Number(order.total || 0).toFixed(2)}</td>
+
+                <td className="p-4">{order.paymentMethod || "-"}</td>
+
                 <td className="p-4">
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      order.status === "Delivered"
-                        ? "bg-green-100 text-green-800"
-                        : order.status === "Processing"
-                          ? "bg-blue-100 text-blue-800"
-                          : order.status === "Cancelled"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
-                    }`}
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(
+                      order.status,
+                    )}`}
                   >
                     {order.status || "Pending"}
                   </span>
                 </td>
+
                 <td className="p-4">
                   <button
                     onClick={() => setSelectedOrder(order)}
@@ -266,59 +216,46 @@ export default function Orders() {
         </table>
       </div>
 
-      {/* 📱 Mobile Cards */}
+      {/* 📱 MOBILE */}
       <div className="md:hidden space-y-4">
         {filteredOrders.map((order) => (
-          <div
-            key={order.id}
-            className="bg-white rounded-xl shadow p-4 space-y-2"
-          >
-            <div className="flex justify-between items-center">
+          <div key={order.id} className="bg-white rounded-xl shadow p-4">
+            <div className="flex justify-between">
               <h2 className="font-semibold">Order #{order.id.slice(0, 6)}</h2>
-              <button
+              <Eye
+                size={18}
+                className="text-blue-600 cursor-pointer"
                 onClick={() => setSelectedOrder(order)}
-                className="text-blue-600"
-              >
-                <Eye size={18} />
-              </button>
+              />
             </div>
 
             <p className="text-xs text-gray-500">
               {formatDate(order.createdAt)}
             </p>
 
-            <p className="text-sm text-gray-600">{order.address?.name}</p>
+            <p className="text-sm">{order.address?.name}</p>
 
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-sm mt-2">
               <span>
-                {order.items?.reduce(
-                  (sum, item) => sum + Number(item.qty || 0),
-                  0,
-                )}{" "}
-                items
+                {order.items?.reduce((s, i) => s + i.qty, 0) || 0} items
               </span>
-
               <span className="font-semibold">
                 ₹{Number(order.total || 0).toFixed(2)}
               </span>
             </div>
 
             <span
-              className={`text-xs font-semibold ${
-                order.status === "Delivered"
-                  ? "text-green-600"
-                  : order.status === "Processing"
-                    ? "text-blue-600"
-                    : "text-yellow-600"
-              }`}
+              className={`text-xs font-semibold ${getStatusStyle(
+                order.status,
+              )}`}
             >
-              {order.status || "Pending"}
+              {order.status}
             </span>
           </div>
         ))}
       </div>
 
-      {/* 👁️ Modal */}
+      {/* 🔥 MODAL (UNCHANGED) */}
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">

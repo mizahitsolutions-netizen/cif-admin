@@ -20,6 +20,7 @@ export default function Users() {
 
     return () => unsub();
   }, []);
+  
 
   return (
     <>
@@ -41,7 +42,7 @@ export default function Users() {
           <tbody>
             {users.map((user) => (
               <tr key={user.id} className="border-t">
-                <td className="p-4">{user.username || "—"}</td>
+                <td className="p-4">{user.username || user.firstName || "—"}</td>
                 <td className="p-4">{user.email}</td>
                 <td className="p-4">{user.ordersCount || 0}</td>
                 <td className="p-4">
@@ -77,7 +78,7 @@ export default function Users() {
             className="bg-white rounded-xl shadow p-4 space-y-2"
           >
             <div className="flex justify-between items-center">
-              <h2 className="font-semibold">{user.name || "Unnamed User"}</h2>
+              <h2 className="font-semibold">{user.name || user.username || "Unnamed User"}</h2>
               <button
                 onClick={() => setSelectedUser(user)}
                 className="text-blue-600"

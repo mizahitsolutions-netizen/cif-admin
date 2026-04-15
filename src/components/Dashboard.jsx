@@ -208,7 +208,7 @@ export default function Dashboard() {
                       Order #{order.id.slice(0, 6).toUpperCase()}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {order.address?.name || "Customer"}
+                      {order.address?.name || order.address?.firstName || "Customer"}
                     </p>
                   </div>
 
