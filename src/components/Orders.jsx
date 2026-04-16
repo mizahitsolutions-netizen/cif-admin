@@ -93,6 +93,7 @@ export default function Orders() {
     return "bg-yellow-100 text-yellow-800"; // created / default
   };
 
+  console.log(selectedOrder);
 
   return (
     <>
@@ -265,13 +266,29 @@ export default function Orders() {
 
             <div className="mb-6 text-sm space-y-1">
               <p>
-                <b>Name:</b> {selectedOrder.address?.name}
+                <b>Name:</b>{" "}
+                {selectedOrder.address?.name ||
+                  `${selectedOrder.address?.firstName || ""} ${
+                    selectedOrder.address?.lastName || ""
+                  }`}
               </p>
+
               <p>
                 <b>Phone:</b> {selectedOrder.address?.phone}
               </p>
+
               <p>
-                <b>City:</b> {selectedOrder.address?.city}
+                <b>Address:</b>
+              </p>
+
+              <p className="text-gray-600 leading-relaxed">
+                {selectedOrder.address?.line1}
+                {selectedOrder.address?.line2 &&
+                  `, ${selectedOrder.address?.line2}`}
+                <br />
+                {selectedOrder.address?.city}, {selectedOrder.address?.state}
+                <br />
+                {selectedOrder.address?.pincode}, India
               </p>
             </div>
 
