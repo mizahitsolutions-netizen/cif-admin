@@ -1,39 +1,48 @@
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { storage } from "./firebase";
+import {
+  getStorage,
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 
-/**
- * Upload file to Firebase Storage
- * @param {File|Blob} file - compressed WebP file
- * @param {string} folder - storage folder (products, heroBanners, newsletter, etc.)
- * @returns {Promise<string>} download URL
- */
-export const uploadToFirebase = async (file, folder = "products") => {
-  try {
-    // Generate unique filename
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000000);
+export const uploadToFirebase = async (file, folder, onProgress) => {
+  // 🚫 Max 80MB
+  if (file.size > 80 * 1024 * 1024) {
+    throw new Error("Video too large. Max 80MB allowed.");
+  }
 
-    const fileName = `${timestamp}_${random}.webp`;
+  const storage = getStorage();
 
-    // Create storage reference
-    const storageRef = ref(storage, `${folder}/${fileName}`);
+  // 🔥 Force MP4 filename
+  const extension = file.name.split(".").pop();
 
-    // Upload file
-    await uploadBytes(storageRef, file, {
-      contentType: "image/webp",
-      customMetadata: {
-        originalName: file.name || "compressed.webp",
-        uploadedAt: new Date().toISOString(),
-        folder: folder,
-      },
+  const fileName = `${Date.now()}_${file.name.replace(
+    `.${extension}`,
+    "",
+  )}.mp4`;
+
+  const storageRef = ref(storage, `${folder}/${fileName}`);
+
+  return new Promise((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(storageRef, file, {
+      contentType: "video/mp4",
     });
 
-    // Get download URL
-    const downloadURL = await getDownloadURL(storageRef);
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const percent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
 
-    return downloadURL;
-  } catch (error) {
-    console.error("Firebase upload error:", error);
-    throw error;
-  }
+        if (onProgress) {
+          onProgress(Math.round(percent));
+        }
+      },
+      (error) => reject(error),
+      async () => {
+        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+
+        resolve(downloadURL);
+      },
+    );
+  });
 };
